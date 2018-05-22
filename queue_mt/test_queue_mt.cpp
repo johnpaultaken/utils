@@ -190,33 +190,35 @@ void test_concurrent4x_push_pop()
     int count = 1024;
 
     auto do_poppush = (
-        [&q, &concurrency, &wait, count]() {
-        concurrency++;
-        while (wait) {};
-        for (int e = 1; e < count; ++e)
-        {
-            int val = q.pop();
-            std::this_thread::yield();
-            q.push(val);
+            [&q, &concurrency, &wait, count]() {
+            concurrency++;
+            while (wait) {};
+            std::vector<int> vi;
+            for (int e = 1; e < count; ++e)
+            {
+                vi.emplace_back(q.pop());
+            }
+            for (auto e : vi)
+            {
+                q.push(e);
+            }
         }
-    }
     );
 
     auto do_push = (
         [&q, &concurrency, &wait, count]() {
-        concurrency++;
-        while (wait) {};
-        for (int e = 1; e < count; ++e)
-        {
-            q.push(e);
-            // the following ensures some pops go into wait
-            std::this_thread::sleep_for(std::chrono::milliseconds(q.size())/20);
-            if (! q.empty())
+            concurrency++;
+            while (wait) {};
+            for (int e = 1; e < count; ++e)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                q.push(e);
+                // the following ensures some pops go into wait
+                if (! q.empty())
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(q.size()/20));
+                }
             }
         }
-    }
     );
 
     auto t1 = std::thread(do_poppush);
@@ -260,6 +262,6 @@ int main(int, char **)
     test_concurrent4x_push_pop();
 
     cout << "\ndone\n";
-    //getchar();
+    getchar();
     return 0;
 }
