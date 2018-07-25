@@ -1,10 +1,15 @@
-//
+//----------------------------------------------------------------------------
+// year   : 2018
+// author : John Paul
+// email  : johnpaultaken@gmail.com
+// source : https://github.com/johnpaultaken
+// description :
 // How does a std::set figure out the partial type of the allocator
 // so that it can it can convert the passed in allocator type allocator<T>
 // to allocator<treenode<T>> ?
 //
 // The following is a possible C++11 solution.
-//
+//----------------------------------------------------------------------------
 
 #include <iostream>
 #include <typeinfo>
