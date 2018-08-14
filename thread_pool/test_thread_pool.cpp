@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+using namespace utils;
+
 int foo(double f, int i)
 {
     return f + i;
@@ -9,8 +11,9 @@ int foo(double f, int i)
 
 int main()
 {
-    thread_pool<int> tp;
+    thread_pool tp;
     tp.async(foo, 2.3, 7);
-    tp.async([]()->int{std::cout << "yay!"; return 0;});
+    tp.async([]()->void *{std::cout << "yay!"; return nullptr;});
+    tp.async([](){std::cout << "woohoo!";});
     std::cout << "\ndone";
 }

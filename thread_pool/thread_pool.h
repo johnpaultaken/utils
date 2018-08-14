@@ -14,20 +14,74 @@
 #include <future>
 #include <functional>
 #include <queue>
+#include <memory>
 
-template <class ReturnType>
+namespace utils
+{
+
 class thread_pool
 {
 public:
+    template<class T>
+    using enable_if_t_void =
+        typename std::enable_if<std::is_void<T>::value, T>::type;
+
+    template<class T>
+    using enable_if_t_not_void =
+        typename std::enable_if<!std::is_void<T>::value, T>::type;
+
     template <class Fn, class... Args>
-    void //std::future<ReturnType>
+    std::future<
+        enable_if_t_not_void<typename std::result_of<Fn(Args...)>::type>
+    >
     async (Fn&& fn, Args&&... args)
     {
+        auto ppromise = std::make_shared<
+            std::promise<typename std::result_of<Fn(Args...)>::type>
+        >();
         q_.emplace(
-            std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...)
+            [ppromise, &fn, &args...](){
+                try
+                {
+                    ppromise->set_value(
+                        std::forward<Fn>(fn)(std::forward<Args>(args)...)
+                    );
+                }
+                catch(std::exception &)
+                {
+                    ppromise->set_exception(std::current_exception());
+                }
+            }
         );
+        return ppromise->get_future();
+    }
+
+    template <class Fn, class... Args>
+    std::future<enable_if_t_void<typename std::result_of<Fn(Args...)>::type>>
+    async (Fn&& fn, Args&&... args)
+    {
+        auto ppromise = std::make_shared<
+            std::promise<typename std::result_of<Fn(Args...)>::type>
+        >();
+        q_.emplace(
+            [ppromise, &fn, &args...](){
+                try
+                {
+                    std::forward<Fn>(fn)(std::forward<Args>(args)...);
+                    ppromise->set_value();
+                }
+                catch(std::exception &)
+                {
+                    ppromise->set_exception(std::current_exception());
+                }
+            }
+        );
+        return ppromise->get_future();
     }
 
 private:
-    std::queue<std::function<ReturnType()>> q_;
+    std::queue<std::function<void()>> q_;
 };
+
+
+} // namespace utils
