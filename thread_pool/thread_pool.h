@@ -23,34 +23,39 @@ namespace utils
 /*
 Notes:
 1.  Use -pthread option with gcc.
-2.  Since temps are not copied but forwarded as rvalue, temps and literals
-    cannot be used as async params.
+2.  Unlike std::async, cannot queue functions with rvalue parameters for now.
 */
 
 class thread_pool
 {
 public:
 
-    template <class Fn, class... Args>
-    static typename std::enable_if<!std::is_void<typename std::result_of<Fn(Args...)>::type>::value ,void>::type
+    template <class Fn>
+    static typename std::enable_if<
+        !std::is_void<typename std::result_of<Fn()>::type>::value ,void
+    >::type
     run (
-        const std::shared_ptr<std::promise<typename std::result_of<Fn(Args...)>::type>> & ppromise,
-        Fn&& fn,
-        Args&&... args
+        const std::shared_ptr<
+            std::promise<typename std::result_of<Fn()>::type>
+        > & ppromise,
+        Fn && fn
     )
     {
-        ppromise->set_value(std::forward<Fn>(fn)(std::forward<Args>(args)...));
+        ppromise->set_value(std::forward<Fn>(fn)());
     }
 
-    template <class Fn, class... Args>
-    static typename std::enable_if<std::is_void<typename std::result_of<Fn(Args...)>::type>::value ,void>::type
+    template <class Fn>
+    static typename std::enable_if<
+        std::is_void<typename std::result_of<Fn()>::type>::value ,void
+    >::type
     run (
-        const std::shared_ptr<std::promise<typename std::result_of<Fn(Args...)>::type>> & ppromise,
-        Fn&& fn,
-        Args&&... args
+        const std::shared_ptr<
+            std::promise<typename std::result_of<Fn()>::type>
+        > & ppromise,
+        Fn && fn
     )
     {
-        std::forward<Fn>(fn)(std::forward<Args>(args)...);
+        std::forward<Fn>(fn)();
         ppromise->set_value();
     }
 
@@ -58,12 +63,17 @@ public:
     std::future<typename std::result_of<Fn(Args...)>::type>
     async (Fn&& fn, Args&&... args)
     {
-        auto ppromise = std::make_shared<std::promise<typename std::result_of<Fn(Args...)>::type>>();
+        auto ppromise = std::make_shared<
+            std::promise<typename std::result_of<Fn(Args...)>::type>
+        >();
+        auto fn_argsbound = std::bind(
+            std::forward<Fn>(fn), std::forward<Args>(args)...
+        );
         q_.emplace(
-            [ppromise, &fn, &args...](){
+            [ppromise, fn_argsbound](){
                 try
                 {
-                    run(ppromise, std::forward<Fn>(fn), std::forward<Args>(args)...);
+                    run(ppromise, fn_argsbound);
                 }
                 catch(std::exception &)
                 {

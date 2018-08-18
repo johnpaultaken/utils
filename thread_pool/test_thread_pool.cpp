@@ -6,7 +6,14 @@ using namespace utils;
 
 int foo(double d, int i)
 {
-    std::cout << "\n static function works!";
+    if (d==2.3 && i==7)
+    {
+        std::cout << "\n OK : ";
+    }
+    else
+    {
+        std::cout << "\n FAIL : ";
+    }
     return d + i;
 }
 
@@ -37,41 +44,93 @@ void display(std::unique_ptr<std::string> && rvalue)
 int main()
 {
     thread_pool tp;
+
+    // static function pointer call.
     double d = 2.3;
     int i = 7;
+    tp.async(&foo, d, i);
+    tp.wait();
+    std::cout << "static function pointer.";
+
+    // static function reference call.
     tp.async(foo, d, i);
+    tp.wait();
+    std::cout << "static function reference.";
 
-    // the following needs pointer to member specialization.
-    //myc obj;
-    //float f = 8.3f;
-    //tp.async(&myc::getset, &obj, f);
+    // member function call.
+    myc obj;
+    float f = 8.3f;
+    tp.async(&myc::getset, &obj, f);
+    tp.wait();
+    auto objval = obj.getset(0);
+    if (objval==8.3f)
+    {
+        std::cout << "\n OK : member function.";
+    }
+    else
+    {
+        std::cout << "\n FAIL : member function.";
+    }
 
+    // std::function call.
+    // std::function created with member function bound to parameters using std::bind
     myc obj2;
     auto stdfunc = std::bind(&myc::getset, &obj2, std::placeholders::_1);
-    float p1 = 9.4f;
-    tp.async(stdfunc, p1);
+    float f2 = 9.4f;
+    tp.async(stdfunc, f2);
+    tp.wait();
+    auto objval2 = obj2.getset(0);
+    if (objval2==9.4f)
+    {
+        std::cout << "\n OK : std::function.";
+    }
+    else
+    {
+        std::cout << "\n FAIL : std::function.";
+    }
 
-    // temps not copied, but forwarded as rvalue. Hence temps cannot be used.
-    // The follows causes crash because temps dont last until async gets invoked.
-    //tp.async(std::bind(&myc::getset, &obj2, std::placeholders::_1), 9.4f);
-
-    tp.async([](){std::cout << "\n lambda works!";});
-
-    tp.async([]()->void *{std::cout << "\n lambda works with any return type!"; return nullptr;});
-
-    int dst=0;
-    int src=7;
-    tp.async(copy, dst, src);
-
-    std::unique_ptr<std::string> ps{new std::string{"\n rvalue reference forwarded"}};
-    tp.async(display, std::move(ps));
-
+    // lambda call void return.
+    tp.async([](){std::cout << "\n OK : lambda void return type.";});
     tp.wait();
 
-    std::cout << (dst==7 ? "\n lvalue reference forwarded" : "\n error: lvalue reference not forwarded");
+    // lambda call non-void return.
+    tp.async([]()->void *{std::cout << "\n OK : lambda non-void return type."; return nullptr;});
+    tp.wait();
 
-    auto obj2val = obj2.getset(0);
-    std::cout << (obj2val==9.4f ? "\n std::function works!" : "\n error: std::function doesn't work");
+    // lvalue parameter
+    int dst=0;
+    int src=7;
+    tp.async(copy, std::ref(dst), src);
+    tp.wait();
+    if (dst==7)
+    {
+        std::cout << "\n OK : lvalue forwarding using std::ref.";
+    }
+    else
+    {
+        std::cout << "\n FAIL : lvalue forwarding using std::ref.";
+    }
+
+
+    // rvalue parameter
+    // Note: cannot call functions with rvalue parameters for now.
+    //std::unique_ptr<std::string> ps{new std::string{"\n OK : rvalue forwarding."}};
+    //tp.async(display, std::move(ps));
+    //tp.wait();
+
+    // temp parameter
+    tp.async(foo, 2.3, 7);
+    tp.async(stdfunc, 23.17f);
+    tp.wait();
+    objval2 = obj2.getset(0);
+    if (objval2==23.17f)
+    {
+        std::cout << "\n OK : temp parameter copy.";
+    }
+    else
+    {
+        std::cout << "\n FAIL : temp parameter copy.";
+    }
 
     std::cout << "\n done";
 }
