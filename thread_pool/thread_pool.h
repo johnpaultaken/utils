@@ -84,6 +84,13 @@ public:
             thread.join();
         }
     }
+
+    // No copy construction or assignment.
+    thread_pool(const thread_pool &) = delete;
+    thread_pool(thread_pool &&) = delete;
+    thread_pool & operator=(const thread_pool &) = delete;
+    thread_pool & operator=(thread_pool &&) = delete;
+
 private:    // private member functions
 
     void thread_func()
