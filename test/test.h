@@ -32,10 +32,10 @@ namespace utils
             );
 
         std::ostringstream msg;
-        msg << (cond ? "\nOK : " : "\nFAIL : ")
-            << func
-            << " at " << filename << ":" << line << " "
-            << what;
+        msg << (cond ? "\n OK : " : "\n FAIL : ")
+            << what
+            << " - " << func << "()"
+            << " at " << filename << ":" << line << " ";
 
         cout << msg.str();
     }
