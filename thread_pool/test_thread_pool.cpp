@@ -1,4 +1,5 @@
 #include "thread_pool.h"
+#include "../test/test.h"
 
 #include <string>
 
@@ -62,14 +63,7 @@ void test_interface_basic()
     float f = 8.3f;
     tp.async(&myc::getset, &obj, f).get();
     auto objval = obj.getset(0);
-    if (objval==8.3f)
-    {
-        std::cout << "\n OK : member function.";
-    }
-    else
-    {
-        std::cout << "\n FAIL : member function.";
-    }
+    ASSERT_M(objval==8.3f, "member function");
 
     // std::function call.
     // std::function created with member function bound to parameters
@@ -79,14 +73,7 @@ void test_interface_basic()
     float f2 = 9.4f;
     tp.async(stdfunc, f2).get();
     auto objval2 = obj2.getset(0);
-    if (objval2==9.4f)
-    {
-        std::cout << "\n OK : std::function.";
-    }
-    else
-    {
-        std::cout << "\n FAIL : std::function.";
-    }
+    ASSERT_M(objval2==9.4f, "std::function");
 
     // lambda call void return.
     tp.async([](){std::cout << "\n OK : lambda void return type.";}).get();
@@ -103,15 +90,7 @@ void test_interface_basic()
     int dst=0;
     int src=7;
     tp.async(copy, std::ref(dst), src).get();
-    if (dst==7)
-    {
-        std::cout << "\n OK : lvalue forwarding using std::ref.";
-    }
-    else
-    {
-        std::cout << "\n FAIL : lvalue forwarding using std::ref.";
-    }
-
+    ASSERT_M(dst==7, "lvalue forwarding using std::ref");
 
     // rvalue parameter
     // Note: cannot call functions with rvalue parameters for now.
@@ -125,14 +104,8 @@ void test_interface_basic()
     tp.async(foo, 2.3, 7);
     tp.async(stdfunc, 23.17f).get();
     objval2 = obj2.getset(0);
-    if (objval2==23.17f)
-    {
-        std::cout << "\n OK : temp parameter copy.";
-    }
-    else
-    {
-        std::cout << "\n FAIL : temp parameter copy.";
-    }
+    std::cout << "temp parameter copy.";
+    ASSERT_M(objval2==23.17f, "temp parameter copy");
 
     tp.join();
 }
