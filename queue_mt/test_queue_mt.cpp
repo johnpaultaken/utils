@@ -36,6 +36,37 @@ void  test_push_rvalue()
     ASSERT_M(spi == nullptr, "interface push rvalue");
 }
 
+void test_emplace()
+{
+    class testclass
+    {
+    public:
+        testclass(int i, int *pi): i_{i}, pi_{pi}
+        {
+        }
+
+        bool operator== (const testclass & rhs)
+        {
+            return ((i_==rhs.i_) && (pi_ == rhs.pi_));
+        }
+    private:
+        int i_;
+        int * pi_;
+    };
+
+    int i1=0;
+    testclass obj1{i1, &i1};
+    int i2=0;
+    testclass obj2{i2, &i2};
+    utils::queue_mt<testclass> q;
+    q.emplace(i1, &i1);
+    q.emplace(i2, &i2);
+    auto o1 = q.pop();
+    ASSERT_M(o1 == obj1, "interface emplace");
+    auto o2 = q.pop();
+    ASSERT_M(o2 == obj2, "interface emplace");
+}
+
 //
 // verify that after pop the queue will no longer hold any reference
 // to the popped item.
@@ -77,6 +108,7 @@ void  test_interface()
 {
     test_push_lvalue();
     test_push_rvalue();
+    test_emplace();
     test_pop_releaseref();
     test_size_empty();
 }

@@ -37,6 +37,14 @@ namespace utils
             cv_.notify_one();
         }
 
+        template<typename... Args>
+        void emplace(Args&&... args)
+        {
+            unique_lock<mutex> l{ mutex_ };
+            queue_st_.emplace(std::forward<Args>(args)...);
+            cv_.notify_one();
+        }
+
         T pop()
         {
             unique_lock<mutex> l{mutex_};
