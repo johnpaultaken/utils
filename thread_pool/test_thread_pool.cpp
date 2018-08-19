@@ -110,9 +110,36 @@ void test_interface_basic()
     tp.join();
 }
 
+void test_concurrency()
+{
+    thread_pool tp(3);
+    std::atomic<int> ai{0};
+    std::atomic<bool> wait{true};
+    auto runthis = [&ai, &wait](){
+        ++ai;
+        while (wait);
+        return ai.load();
+    };
+    auto f1 = tp.async(runthis);
+    auto f2 = tp.async(runthis);
+    auto f3 = tp.async(runthis);
+    while (ai < 3);
+    wait = false;
+    bool issuccess = false;
+    try
+    {
+        issuccess = ((f1.get()==3) && (f2.get()==3) && (f3.get()==3));
+    }
+    catch(...)
+    {
+    }
+    ASSERT_M(issuccess, "thread_pool 3 threads concurrency test");
+}
+
 int main()
 {
     test_interface_basic();
+    test_concurrency();
 
     std::cout << "\n done";
     //getchar();

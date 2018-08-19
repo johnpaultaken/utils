@@ -83,6 +83,13 @@ public:
         {
             thread.join();
         }
+
+        threads_.clear();
+    }
+
+    ~thread_pool()
+    {
+        join();
     }
 
     // No copy construction or assignment.
