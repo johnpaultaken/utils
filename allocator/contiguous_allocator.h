@@ -77,7 +77,7 @@ public:
         using other = contiguous_allocator<Type>;
     };
 
-    pointer allocate(size_type n, std::allocator<void>::const_pointer hint = 0)
+    pointer allocate(size_type n, std::allocator<void>::const_pointer /*hint*/ = 0)
     {
         if (!pmem_)
         {
@@ -97,7 +97,7 @@ public:
         }
     }
 
-    void deallocate(pointer p, size_type n)
+    void deallocate(pointer /*p*/, size_type /*n*/)
     {
     }
 private:
