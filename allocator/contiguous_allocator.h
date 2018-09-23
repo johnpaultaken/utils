@@ -4,11 +4,10 @@
 // email  : johnpaultaken@gmail.com
 // source : https://github.com/johnpaultaken
 // description :
-//      A C++ 11 allocator for containers to put
-//      their elements in contiguous memory.
-//      Since elements are packed and adjacent
-//      to each other, the layout is cache optimised.
-//      It allows a fetch of a cache line to contain
+//      A C++ 11 allocator for containers to put their elements in
+//      contiguous memory.
+//      Since elements are packed and adjacent to each other, the layout is
+//      cache optimized. It allows a fetch of a cache line to contain the
 //      maximum number of container elements.
 //----------------------------------------------------------------------------
 
@@ -19,22 +18,19 @@
 #include <cstdlib>
 #include <cassert>
 
+//#define TRACE
+#include "../misc/utils.h"
+
 namespace utils
 {
 
 /*
 Notes:
-1.  This allocator can be used for cache efficient
-     access of container elements.
-2.  It is meant to be used when the container
-     has reached a state when no more insert
-     or erase of elements are needed. For example
-     a. 
-     a dictionary that will be used for only lookup
-     after it is initialized,
-     b.
-     a key-value store where only the value
-     changes but not the key.
+1.  This allocator can be used for cache efficient access of container elements.
+2.  It is meant to be used when the container has reached a state when no more
+     insert or erase of elements are needed. For example
+     a) a dictionary that will be used for only lookup after it is initialized,
+     b) a key-value store where only the value changes but not the key.
      Test file has usage examples.
 */
 
@@ -50,37 +46,90 @@ public:
     using size_type = size_t;
     using difference_type = ptrdiff_t;
 
-    contiguous_allocator(size_t capacity) noexcept : capacity_{ capacity }, pmem_{ nullptr }, size_{ 0 }
+    contiguous_allocator(size_t capacity) noexcept :
+        capacity_{capacity}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
+        ctrace << "\n->constructor: " << std::hex << this << std::dec
+            << " allocator for type " << typeid(T).name();
+    }
+
+    contiguous_allocator(const contiguous_allocator & other) noexcept :
+        capacity_{other.capacity_}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
+    {
+        ctrace << "\n->copy constructor: " << std::hex << this << std::dec
+            << " allocator for type " << typeid(T).name() << "\n\tfrom "
+            << std::hex << &other << std::dec << " of same type.";
+
+        if (other.pmem_)
+        {
+            ctrace << "\n\tcopy construction from a used contiguous_allocator.";
+        }
+    }
+
+    //
+    // Must be defined to allow for copy-constructions from allocator objects
+    // of other types. See rebind below.
+    //
+    template <class U>
+    contiguous_allocator(const contiguous_allocator<U> & other) noexcept :
+        capacity_{other.capacity_}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
+    {
+        ctrace << "\n->copy constructor: " << std::hex << this << std::dec
+            << " allocator for type " << typeid(T).name() << "\n\tfrom "
+            << std::hex << &other << std::dec << " of type " << " "
+            << typeid(U).name();
+
+        if (other.pmem_)
+        {
+            ctrace << "\n\tcopy construction from a used contiguous_allocator.";
+        }
     }
 
     ~contiguous_allocator()
     {
-        if (pmem_)
+        ctrace << "\n->destructor: " << std::hex << this << std::dec
+            << " allocator for type " << typeid(T).name();
+
+        if (size_dealloc_ == size_)  // needed only due to Visual Studio bug.
         {
-            capacity_ = 0;
-            size_ = 0;
-            free(pmem_);
-            pmem_ = nullptr;
+            if (pmem_)
+            {
+                capacity_ = 0;
+                size_ = 0;
+                free(pmem_);
+                pmem_ = nullptr;
+                size_dealloc_ = 0;
+            }
+        }
+        else
+        {
+            ctrace << "\n\tWARNING: memory leak. Allocator destroyed before"
+                << " all memory deallocated.";
         }
     }
 
-    // must be defined to allow for copy-constructions from allocator objects of other types.
-    template <class U>
-    contiguous_allocator(const contiguous_allocator<U> & other) noexcept : capacity_{ other.capacity_ }, pmem_{ nullptr }, size_{ 0 }
-    {
-    }
-
+    //
+    // Containers that need allocation of type other than its template
+    // parameter uses this to figure out type of allocator it needs.
+    //
     template <typename Type>
     struct rebind
     {
         using other = contiguous_allocator<Type>;
     };
 
-    pointer allocate(size_type n, std::allocator<void>::const_pointer /*hint*/ = 0)
+    pointer allocate(
+        size_type n, std::allocator<void>::const_pointer /*hint*/ = 0
+    )
     {
+        ctrace << "\n->allocate: " << n << " of type " << typeid(T).name()
+            << " of size " << sizeof(T);
+
         if (!pmem_)
         {
+            ctrace << "\n\tallocator: " << std::hex << this << std::dec
+                << " init for capacity " << capacity_;
+
             assert(size_ == 0);
             pmem_ = pointer(malloc(capacity_ * sizeof(T)));
         }
@@ -89,23 +138,70 @@ public:
         {
             auto p = pmem_ + size_;
             size_ += n;
+
+            ctrace << "\n\tallocator: " << std::hex << this
+                << " return address " << p << std::dec;
+
             return p;
         }
         else
         {
+            ctrace << "\n\tFAIL allocator: " << std::hex << this << std::dec
+                << " exceeded capacity." << std::flush;
+
             throw std::bad_alloc{};
         }
     }
 
-    void deallocate(pointer /*p*/, size_type /*n*/)
+    void deallocate(pointer p, size_type n)
     {
+        ctrace << "\n->deallocate: " << n << " of type " << typeid(T).name()
+            << " of size " << sizeof(T) << "\n\tat address " << std::hex << p
+            << std::dec;
+
+        size_dealloc_ += n;
+
+        // suppress unused parameter warning when TRACE is not defined.
+        (void)(p);
     }
+
+    //
+    // C++11 allocator of one type can be asked to construct object of
+    // another type.
+    // For example, the constructed type can be embedded inside the allocated
+    // type and might need independent in-place construction. Say, the
+    // implementation of a container like map could have the value_type
+    // embedded inside a Red-Black Tree node.
+    //
+    template<class U, class... Args>
+    void construct (U* p, Args&&... args)
+    {
+        ctrace << "\n->construct: of type " << typeid(U).name()
+            << "\n\tby allocator for type " << typeid(T).name()
+            << "\n\tat address " << std::hex << p << std::dec;
+
+        ::new ((void *)p) U(std::forward<Args>(args)...);
+    }
+
+    template<class U>
+    void destroy(U* p)
+    {
+        ctrace << "\n->destroy: of type " << typeid(U).name()
+            << "\n\tby allocator for type " << typeid(T).name()
+            << "\n\tat address " << std::hex << p << std::dec;
+
+        p->~U();
+    }
+
 private:
     size_t capacity_;
     pointer pmem_;
     size_t size_;
 
     template <class U> friend class contiguous_allocator;
+
+    // the following members are for sanity check only.
+    size_t size_dealloc_;
 };
 
 } // namespace utils

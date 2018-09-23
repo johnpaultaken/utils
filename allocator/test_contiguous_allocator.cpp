@@ -42,6 +42,9 @@ void test_stdmap()
     > cache_optimized_dict(
         contiguous_allocator <map <unsigned int, string>::value_type> {
             dict.size()
+#ifdef _MSC_VER
+            + 1     // Visual Studio needs one more.
+#endif
         }
     );
 
@@ -54,6 +57,12 @@ void test_stdmap()
         FAIL_M ("insert into map using contiguous_allocator");
         return;
     }
+
+    map <unsigned int, string> actual{
+        cache_optimized_dict.begin(),
+        cache_optimized_dict.end()
+    };
+    ASSERT_M (actual == dict, "insert into map using contiguous_allocator");
 }
 
 int main()
@@ -62,6 +71,6 @@ int main()
     test_stdmap();
 
     std::cout << "\n done";
-    getchar();
+    //getchar();
     return 0;
 }
