@@ -29,6 +29,16 @@ void test_compiletime_check()
     ASSERT_M (sizeof(t), "allocator_traits compile time check");
 }
 
+size_t safesize_stdmap(size_t sz)
+{
+   return (
+               sz
+#ifdef _MSC_VER
+               + 1     // Visual Studio needs one more for std::map.
+#endif
+   );
+}
+
 void test_stdmap()
 {
     map <unsigned int, string> dict { 
@@ -41,10 +51,7 @@ void test_stdmap()
         contiguous_allocator <std::pair <const unsigned int, string>>
     > cache_optimized_dict(
         contiguous_allocator <map <unsigned int, string>::value_type> {
-            dict.size()
-#ifdef _MSC_VER
-            + 1     // Visual Studio needs one more.
-#endif
+            safesize_stdmap(dict.size())
         }
     );
 
@@ -65,10 +72,57 @@ void test_stdmap()
     ASSERT_M (actual == dict, "insert into map using contiguous_allocator");
 }
 
+void test_stdmap_copyconstruct()
+{
+    map <unsigned int, string> dict {
+        { 1,"one" }, { 2,"two" }, { 3,"three" }, { 4,"four" }
+    };
+
+    map<
+        unsigned int, string,
+        less<unsigned int>,
+        contiguous_allocator <std::pair <const unsigned int, string>>
+    > cache_optimized_dict(
+        dict.begin(), dict.end(),
+        std::less<unsigned int>(),
+        contiguous_allocator <map <unsigned int, string>::value_type> {
+            safesize_stdmap(dict.size())
+        }
+    );
+
+    try
+    {
+        map<
+            unsigned int, string,
+            less<unsigned int>,
+            contiguous_allocator <std::pair <const unsigned int, string>>
+        > cache_optimized_dict_copy {
+            cache_optimized_dict,
+            safesize_stdmap(cache_optimized_dict.size())
+        };
+
+        map <unsigned int, string> actual{
+            cache_optimized_dict_copy.begin(),
+            cache_optimized_dict_copy.end()
+        };
+
+        ASSERT_M (
+            actual == dict,
+            "copy construct map using contiguous_allocator"
+        );
+    }
+    catch (...)
+    {
+        FAIL_M ("copy construct map using contiguous_allocator");
+        return;
+    }
+}
+
 int main()
 {
     test_compiletime_check();
     test_stdmap();
+    test_stdmap_copyconstruct();
 
     std::cout << "\n done";
     //getchar();
