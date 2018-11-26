@@ -2,6 +2,8 @@
 Given the size of an unordered_map,
 return a safe size for the contiguous_allocator.
 
+include<cmath>
+
 size_t safesize_stdmap(size_t size)
 {
    return (
@@ -15,8 +17,8 @@ size_t safesize_stdmap(size_t size)
    );
 }
 
-This calculation is derived from allocation pattern recorded in the rest of
-this document.
+The above calculation is derived from allocation pattern recorded in the rest
+of this document.
 Note the reallocation size sequences for
 clang:          2   5   11  23  47  97  197 397 797 1597 ...
 visual studio:  16      128     1024    2048    4096 ...  
