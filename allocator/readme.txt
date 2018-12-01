@@ -1,27 +1,30 @@
 ==============================================================================
-Given the size of an unordered_map,
-return a safe size for the contiguous_allocator.
+std::unordered_map implementation uses a hash table.
+This requires two allocator types, one for the hash table and another for the
+map element.
 
-include<cmath>
-
-size_t safesize_stdmap(size_t size)
-{
-   return (
-#ifdef _MSC_VER
-        size_t(pow(2, ceil(log2(size)) + 1) * 2) // Visual Studio
-#elif __clang__
-        size_t(pow(2, ceil(log2(size)) + 1) * 2) // clang
-#else
-        size_t(size * 1.1) // gcc
-#endif
-   );
-}
-
-The above calculation is derived from allocation pattern recorded in the rest
-of this document.
-Note the reallocation size sequences for
+The hash table is allocated as a chunk of pointers to element.
+This chunk is reallocated to increase the table size as the container size
+increases.
+On growth, a larger chunk is allocated, the smaller chunk is copied over, and
+the smaller chunk is released.
+Note the reallocation size sequences for unordered_map(itrBegin, itrEnd)
 clang:          2   5   11  23  47  97  197 397 797 1597 ...
 visual studio:  16      128     1024    2048    4096 ...  
+gcc:            No reallocation since size is known in advance. gcc is smarter.
+
+However, map elements are allocated one by one as the container size increases.
+Hence there is no reallocate involved in this case.
+
+So the allocator capacity needed to support unordered_map is different
+for pointer type vs non-pointer type.
+contiguous_stdcontainer_allocator is provided to support such special needs.
+==============================================================================
+Challenge:
+Can you figure out the next number in the clang sequence ?
+Hint:
+Statistical analysis have shown hash table sizing to have certain properties
+to enable even distribution.
 ==============================================================================
 unordered_map constructed with 1033 elements
 unordered_map(itrBegin, itrEnd)
