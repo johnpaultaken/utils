@@ -21,7 +21,7 @@ for pointer type vs non-pointer type.
 contiguous_stdcontainer_allocator is provided to support such special needs.
 ==============================================================================
 Challenge:
-Can you figure out the next number in the clang sequence ?
+Can you figure out the next number in the above clang sequence ?
 Hint:
 Statistical analysis have shown hash table sizing to have certain properties
 to enable even distribution.

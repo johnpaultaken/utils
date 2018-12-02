@@ -46,6 +46,11 @@ public:
     using size_type = size_t;
     using difference_type = ptrdiff_t;
 
+    //
+    // Param: capacity - usually same value as the intended capacity of the
+    //          container this allocator is used for. However this is not
+    //           enough for some containers like unordered_map. See readme.
+    //
     contiguous_allocator(size_t capacity) noexcept :
         capacity_{capacity}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
