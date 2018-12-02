@@ -95,7 +95,10 @@ public:
         ctrace << "\n->destructor: " << std::hex << this << std::dec
             << " allocator for type " << typeid(T).name();
 
-        if (size_dealloc_ == size_)  // needed only due to Visual Studio bug.
+        // This check is needed only due to Visual Studio bug.
+        // Visual studio 2015 & 2017 std::map implementation continues to use
+        // memory allocated by an allocator even after the allocator is freed.
+        if (size_dealloc_ == size_)
         {
             if (pmem_)
             {
