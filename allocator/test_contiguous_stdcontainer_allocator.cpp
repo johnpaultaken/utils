@@ -13,6 +13,8 @@ using std::list;
 #include <string>
 using std::string;
 using std::less;
+using std::equal_to;
+using std::hash;
 
 struct s
 {
@@ -41,7 +43,7 @@ void test_compiletime_check()
     ASSERT_M (sizeof(a3), "allocator_traits compile time check");
 }
 
-void test_stdmap()
+void test_stdmap_insert()
 {
     map <unsigned int, string> dict { 
         { 1,"one" }, { 2,"two" }, { 3,"three" }, { 4,"four" }
@@ -130,11 +132,52 @@ void test_stdmap_copyconstruct()
     }
 }
 
+void test_unordmap_insert()
+{
+    map <unsigned int, string> dict {
+        { 1,"one" }, { 2,"two" }, { 3,"three" }, { 4,"four" }
+    };
+
+    unordered_map<
+        unsigned int, string,
+        hash<unsigned int>,
+        equal_to<unsigned int>,
+        contiguous_stdcontainer_allocator <
+            unordered_map, std::pair <const unsigned int, string>
+        >
+    > cache_optimized_dict(
+        contiguous_stdcontainer_allocator <
+            unordered_map, unordered_map <unsigned int, string>::value_type
+        > {
+            dict.size()
+        }
+    );
+
+    try
+    {
+        cache_optimized_dict.insert (dict.begin(), dict.end());
+    }
+    catch (...)
+    {
+        FAIL_M ("insert into map using contiguous_allocator");
+        return;
+    }
+
+    map <unsigned int, string> actual{
+        cache_optimized_dict.begin(),
+        cache_optimized_dict.end()
+    };
+    ASSERT_M (actual == dict, "insert into map using contiguous_allocator");
+}
+
 int main()
 {
     test_compiletime_check();
-    test_stdmap();
+
+    test_stdmap_insert();
     test_stdmap_copyconstruct();
+
+    test_unordmap_insert();
 
     std::cout << "\n done";
     getchar();

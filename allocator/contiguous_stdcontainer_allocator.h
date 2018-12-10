@@ -38,62 +38,56 @@ Notes:
 */
 
 //
+// Generic version.
 // Template Params:
 //      Container - the container type this allocator is going to be used for.
 //                  Allocator allocation pattern is optimized for different
 //                  container types. See readme.
 //      T         - the usual allocation type param.
+//      void      - this unnamed parameter is used to choose specialization
+//                  based on traits of type T (using a technique called SFINAE)
 //
-template <template <class... Args> class Container, class T>
-class _contiguous_stdcontainer_allocator : public contiguous_allocator<T>
+template <template <class... Args> class Container, class T, class = void>
+class contiguous_stdcontainer_allocator : public contiguous_allocator<T>
 {
 public:
-    template <class... Params>
-    using container_type = Container<Params...>;
+    using base_type = contiguous_allocator<T>;
 
     //
     // Forward all base class constructors.
-    // However param has different semantics.
-    // Param: capacity - same value as the intended capacity of the container
-    //          this allocator is used for.
+    // Params:
+    //     capacity - same value as the intended capacity of the container
+    //                this allocator is used for.
     //
-    using contiguous_allocator<T>::contiguous_allocator;
+    using base_type::base_type;
 
     //
-    // Containers that need allocation of type other than its template
-    // parameter uses this to figure out type of allocator it needs.
+    // Need to override rebind.
     //
     template <typename Type>
     struct rebind
     {
-        using other = _contiguous_stdcontainer_allocator<container_type, Type>;
+        using other = contiguous_stdcontainer_allocator<Container, Type>;
     };
-};
-
-//
-// Generic version.
-//
-template <template <class... Args> class Container, class T>
-class contiguous_stdcontainer_allocator :
-    public _contiguous_stdcontainer_allocator<Container, T>
-{
 };
 
 //
 // Specialized version for std::map.
 //
 template <class T>
-class contiguous_stdcontainer_allocator<std::map, T> :
-    public _contiguous_stdcontainer_allocator<std::map, T>
+class contiguous_stdcontainer_allocator<std::map, T, void> :
+    public contiguous_allocator<T>
 {
 public:
+    using base_type = contiguous_allocator<T>;
+
     //
     // Params:
     //     capacity - same value as the intended capacity of the container
     //                this allocator is used for.
     //
     contiguous_stdcontainer_allocator(size_t capacity) noexcept :
-        _contiguous_stdcontainer_allocator<std::map, T>{
+        base_type{
             capacity
     #ifdef _MSC_VER
             + 1     // Visual Studio needs one more for std::map.
@@ -104,7 +98,7 @@ public:
 
     contiguous_stdcontainer_allocator(
         const contiguous_stdcontainer_allocator & other
-    ) noexcept : _contiguous_stdcontainer_allocator<std::map, T>{other}
+    ) noexcept : base_type{other}
     {
     }
 
@@ -115,25 +109,73 @@ public:
     template <class U>
     contiguous_stdcontainer_allocator(
         const contiguous_stdcontainer_allocator<std::map, U> & other
-    ) noexcept : _contiguous_stdcontainer_allocator<std::map, T>{other}
+    ) noexcept : base_type{other}
     {
     }
+
+    //
+    // Need to override rebind.
+    //
+    template <typename Type>
+    struct rebind
+    {
+        using other = contiguous_stdcontainer_allocator<std::map, Type>;
+    };
 };
 
-//
-// Specialized version for std::unordered_map pointer types.
-// Used for hash table allocations.
-//
-template <class T>
-class contiguous_stdcontainer_allocator<std::unordered_map, T *> :
-    public _contiguous_stdcontainer_allocator<std::unordered_map, T *>
+template<class... Args>
+using void_t = void;
+
+template<class T, class = void>
+struct is_ptr_or_itr :
+    public std::false_type
 {
 };
 
-} // namespace utils
+template<class T>
+struct is_ptr_or_itr<T, void_t<decltype(*std::declval<T>())>> :
+    public std::true_type
+{
+};
 
-#ifdef UNUSED /////////////////////////////////////////////////////////////////
+//
+// Specialized version for std::unordered_map hash table allocations.
+// Used for allocating the hash table.
+// Not used for allocating nodes wrapping the container elements itself.
+// Note that in gcc and clang hash table is a table of pointers whereas
+// in Visual Studio it is a table of iterators.
+// Hash table is allocated as a block whereas nodes are allocated one by one.
+// See readme for more details.
+//
+template <class T>
+class contiguous_stdcontainer_allocator<
+    std::unordered_map,
+    T,
+    typename std::enable_if< is_ptr_or_itr<T>::value, void>::type
+> : public contiguous_allocator<T>
+{
+public:
+    using base_type = contiguous_allocator<T>;
+    using typename base_type::pointer;
+    using typename base_type::size_type;
 
+    //
+    // Forward all base class constructors.
+    // Params:
+    //     capacity - same value as the intended capacity of the container
+    //                this allocator is used for.
+    //
+    using base_type::base_type;
+
+    //
+    // Need to override rebind.
+    //
+    template <typename Type>
+    struct rebind
+    {
+        using other =
+            contiguous_stdcontainer_allocator<std::unordered_map, Type>;
+    };
 
     pointer allocate(
         size_type n, std::allocator<void>::const_pointer /*hint*/ = 0
@@ -142,32 +184,12 @@ class contiguous_stdcontainer_allocator<std::unordered_map, T *> :
         ctrace << "\n->allocate: " << n << " of type " << typeid(T).name()
             << " of size " << sizeof(T);
 
-        if (!pmem_)
-        {
-            ctrace << "\n\tallocator: " << std::hex << this << std::dec
-                << " init for capacity " << capacity_;
+        auto p = pointer(malloc(n * sizeof(T)));
 
-            assert(size_ == 0);
-            pmem_ = pointer(malloc(capacity_ * sizeof(T)));
-        }
+        ctrace << "\n\tallocator: " << std::hex << this
+            << " allocate & return address " << p << std::dec;
 
-        if (size_ + n <= capacity_)
-        {
-            auto p = pmem_ + size_;
-            size_ += n;
-
-            ctrace << "\n\tallocator: " << std::hex << this
-                << " return address " << p << std::dec;
-
-            return p;
-        }
-        else
-        {
-            ctrace << "\n\tFAIL allocator: " << std::hex << this << std::dec
-                << " exceeded capacity." << std::flush;
-
-            throw std::bad_alloc{};
-        }
+        return p;
     }
 
     void deallocate(pointer p, size_type n)
@@ -176,82 +198,79 @@ class contiguous_stdcontainer_allocator<std::unordered_map, T *> :
             << " of size " << sizeof(T) << "\n\tat address " << std::hex << p
             << std::dec;
 
-        size_dealloc_ += n;
+        free(p);
 
-        // suppress unused parameter warning when TRACE is not defined.
-        (void)(p);
+        ctrace << "\n\tallocator: " << std::hex << this
+            << " freed address " << p << std::dec;
     }
+};
+
+
+//
+// Specialized version for std::unordered_map node allocations.
+// Used for allocating nodes wrapping the container elements itself.
+// Not used for allocating the hash table.
+// See readme for more details.
+//
+template <class T>
+class contiguous_stdcontainer_allocator<
+    std::unordered_map,
+    T,
+    typename std::enable_if< ! is_ptr_or_itr<T>::value, void>::type
+> : public contiguous_allocator<T>
+{
+public:
+    using base_type = contiguous_allocator<T>;
 
     //
-    // Compute the safe allocator capacity needed by various container types.
-    // Template Param: Container - container type for which computation is for
-    // Param: size - desired size of the container.
-    // Return: safe allocator capacity to support the provided size.
+    // Params:
+    //     capacity - same value as the intended capacity of the container
+    //                this allocator is used for.
     //
-    template<template<class... Args> class Container>
-    static size_t safe_capacity(size_t size)
+    contiguous_stdcontainer_allocator(size_t capacity) noexcept :
+        base_type{
+            capacity
+    #ifdef _MSC_VER
+            + 1     // Visual Studio needs one more for unordered_map nodes.
+    #endif
+        }
     {
-        return size;
     }
 
-    template<>
-    static size_t safe_capacity<std::map>(size_t size)
+    contiguous_stdcontainer_allocator(
+        const contiguous_stdcontainer_allocator & other
+    ) noexcept : base_type{other}
     {
-        return (
-            size
-#ifdef _MSC_VER
-            + 1
-#endif
-        );
-    }
-
-    template<>
-    static size_t safe_capacity<std::unordered_map>(size_t size)
-    {
-
-        return (
-#ifdef _MSC_VER
-            capacity_umap_vstudio(size) // Visual Studio
-#elif __clang__
-            capacity_umap_clang(size) // clang
-#else
-            size_t(size * 1.1) // gcc
-#endif
-        );
-    }
-
-// private functions
-private:
-
-    //
-    // Visual studio grows its hash table in the following manner
-    // 16      128     1024    2048    4096 ...
-    // For more details see readme.txt
-    //
-    static capacity_umap_vstudio(size_t size)
-    {
-
     }
 
     //
-    // Clang grows its hash table in the following manner
-    // 2   5   11  23  47  97  197 397 797 1597 ...
-    // For more details see readme.txt
+    // Must be defined to allow for copy-constructions from allocator objects
+    // of other types. See rebind below.
     //
-    static capacity_umap_clang(size_t size)
+    template <class U>
+    contiguous_stdcontainer_allocator(
+        const contiguous_stdcontainer_allocator<std::unordered_map, U> & other
+    ) noexcept : base_type{other}
     {
-
     }
 
-// private data
-private:
-    size_t capacity_;
-    pointer pmem_;
-    size_t size_;
+    //
+    // Need to override rebind.
+    //
+    template <typename Type>
+    struct rebind
+    {
+        using other =
+            contiguous_stdcontainer_allocator<std::unordered_map, Type>;
+    };
+};
 
-    template <class U> friend class contiguous_stdcontainer_allocator;
+} // namespace utils
 
-    // the following members are for sanity check only.
-    size_t size_dealloc_;
+#ifdef UNUSED
+
+#include <cxxabi.h>
+abi::__cxa_demangle(typeid(T).name(), 0, 0, 0)
+
 
 #endif //UNUSED
