@@ -86,7 +86,7 @@ public:
     //     capacity - same value as the intended capacity of the container
     //                this allocator is used for.
     //
-    contiguous_stdcontainer_allocator(size_t capacity) noexcept :
+    explicit contiguous_stdcontainer_allocator(size_t capacity) noexcept :
         base_type{
             capacity
     #ifdef _MSC_VER
@@ -227,7 +227,7 @@ public:
     //     capacity - same value as the intended capacity of the container
     //                this allocator is used for.
     //
-    contiguous_stdcontainer_allocator(size_t capacity) noexcept :
+    explicit contiguous_stdcontainer_allocator(size_t capacity) noexcept :
         base_type{
             capacity
     #ifdef _MSC_VER

@@ -111,8 +111,7 @@ void test_stdmap_copyconstruct()
                 map, std::pair <const unsigned int, string>
             >
         > cache_optimized_dict_copy {
-            cache_optimized_dict,
-            cache_optimized_dict.size()
+            cache_optimized_dict
         };
 
         map <unsigned int, string> actual{
@@ -159,7 +158,7 @@ void test_unordmap_insert()
     }
     catch (...)
     {
-        FAIL_M ("insert into map using contiguous_allocator");
+        FAIL_M ("insert into unordered_map using contiguous_allocator");
         return;
     }
 
@@ -167,7 +166,64 @@ void test_unordmap_insert()
         cache_optimized_dict.begin(),
         cache_optimized_dict.end()
     };
-    ASSERT_M (actual == dict, "insert into map using contiguous_allocator");
+    ASSERT_M (
+        actual == dict, "insert into unordered_map using contiguous_allocator"
+    );
+}
+
+void test_unordmap_copyconstruct()
+{
+    map <unsigned int, string> dict {
+        { 1,"one" }, { 2,"two" }, { 3,"three" }, { 4,"four" }
+    };
+
+    unordered_map<
+        unsigned int, string,
+        hash<unsigned int>,
+        equal_to<unsigned int>,
+        contiguous_stdcontainer_allocator <
+            unordered_map, std::pair <const unsigned int, string>
+        >
+    > cache_optimized_dict(
+        dict.begin(), dict.end(),
+        0,  // use implementation defined bucket_count
+        hash<unsigned int>(),
+        equal_to<unsigned int>(),
+        contiguous_stdcontainer_allocator <
+            unordered_map, unordered_map <unsigned int, string>::value_type
+        > {
+            dict.size()
+        }
+    );
+
+    try
+    {
+        unordered_map<
+            unsigned int, string,
+            hash<unsigned int>,
+            equal_to<unsigned int>,
+            contiguous_stdcontainer_allocator <
+                unordered_map, std::pair <const unsigned int, string>
+            >
+        > cache_optimized_dict_copy {
+            cache_optimized_dict
+        };
+
+        map <unsigned int, string> actual{
+            cache_optimized_dict_copy.begin(),
+            cache_optimized_dict_copy.end()
+        };
+
+        ASSERT_M (
+            actual == dict,
+            "copy construct unordered_map using contiguous_allocator"
+        );
+    }
+    catch (...)
+    {
+        FAIL_M ("copy construct unordered_map using contiguous_allocator");
+        return;
+    }
 }
 
 int main()
@@ -178,8 +234,9 @@ int main()
     test_stdmap_copyconstruct();
 
     test_unordmap_insert();
+    test_unordmap_copyconstruct();
 
     std::cout << "\n done";
-    getchar();
+    //getchar();
     return 0;
 }

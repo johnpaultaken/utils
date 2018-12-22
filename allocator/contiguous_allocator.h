@@ -51,7 +51,7 @@ public:
     //          container this allocator is used for. However this is not
     //           enough for some containers like unordered_map. See readme.
     //
-    contiguous_allocator(size_t capacity) noexcept :
+    explicit contiguous_allocator(size_t capacity) noexcept :
         capacity_{capacity}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
         ctrace << "\n->constructor: " << std::hex << this << std::dec

@@ -97,8 +97,7 @@ void test_stdmap_copyconstruct()
             less<unsigned int>,
             contiguous_allocator <std::pair <const unsigned int, string>>
         > cache_optimized_dict_copy {
-            cache_optimized_dict,
-            safesize_stdmap(cache_optimized_dict.size())
+            cache_optimized_dict
         };
 
         map <unsigned int, string> actual{
