@@ -17,22 +17,22 @@
 
 namespace utils
 {
-    using std::cout;
+    using ::std::cout;
 
     void assert_m(
         bool cond,
-        const std::string & what,
-        const std::string & func,
+        const ::std::string & what,
+        const ::std::string & func,
         int line
     )
     {
         auto filepath = __FILE__;
-        auto filename = std::max<const char *>(
+        auto filename = ::std::max<const char *>(
             filepath,
-            std::max(strrchr(filepath, '\\'), strrchr(filepath, '/')) + 1
+            ::std::max(strrchr(filepath, '\\'), strrchr(filepath, '/')) + 1
             );
 
-        std::ostringstream msg;
+        ::std::ostringstream msg;
         msg << (cond ? "\n OK : " : "\n FAIL : ")
             << what
             << " - " << func << "()"

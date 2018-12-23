@@ -18,7 +18,6 @@
 #include <cstdlib>
 #include <cassert>
 
-//#define TRACE
 #include "../misc/utils.h"
 
 namespace utils
@@ -54,16 +53,16 @@ public:
     explicit contiguous_allocator(size_t capacity) noexcept :
         capacity_{capacity}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
-        ctrace << "\n->constructor: " << std::hex << this << std::dec
-            << " allocator for type " << typeid(T).name();
+        ctrace << "\n->constructor: " << ::std::hex << this << ::std::dec
+            << " allocator for type " << TYPENAME(T);
     }
 
     contiguous_allocator(const contiguous_allocator & other) noexcept :
         capacity_{other.capacity_}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
-        ctrace << "\n->copy constructor: " << std::hex << this << std::dec
-            << " allocator for type " << typeid(T).name() << "\n\tfrom "
-            << std::hex << &other << std::dec << " of same type.";
+        ctrace << "\n->copy constructor: " << ::std::hex << this << ::std::dec
+            << " allocator for type " << TYPENAME(T) << "\n\tfrom "
+            << ::std::hex << &other << ::std::dec << " of same type.";
 
         if (other.pmem_)
         {
@@ -79,10 +78,10 @@ public:
     contiguous_allocator(const contiguous_allocator<U> & other) noexcept :
         capacity_{other.capacity_}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
-        ctrace << "\n->copy constructor: " << std::hex << this << std::dec
-            << " allocator for type " << typeid(T).name() << "\n\tfrom "
-            << std::hex << &other << std::dec << " of type " << " "
-            << typeid(U).name();
+        ctrace << "\n->copy constructor: " << ::std::hex << this << ::std::dec
+            << " allocator for type " << TYPENAME(T) << "\n\tfrom "
+            << ::std::hex << &other << ::std::dec << " of type " << " "
+            << TYPENAME(U);
 
         if (other.pmem_)
         {
@@ -92,8 +91,8 @@ public:
 
     ~contiguous_allocator()
     {
-        ctrace << "\n->destructor: " << std::hex << this << std::dec
-            << " allocator for type " << typeid(T).name();
+        ctrace << "\n->destructor: " << ::std::hex << this << ::std::dec
+            << " allocator for type " << TYPENAME(T);
 
         // This check is needed only due to Visual Studio bug.
         // Visual studio 2015 & 2017 std::map implementation continues to use
@@ -127,15 +126,15 @@ public:
     };
 
     pointer allocate(
-        size_type n, std::allocator<void>::const_pointer /*hint*/ = 0
+        size_type n, ::std::allocator<void>::const_pointer /*hint*/ = 0
     )
     {
-        ctrace << "\n->allocate: " << n << " of type " << typeid(T).name()
+        ctrace << "\n->allocate: " << n << " of type " << TYPENAME(T)
             << " of size " << sizeof(T);
 
         if (!pmem_)
         {
-            ctrace << "\n\tallocator: " << std::hex << this << std::dec
+            ctrace << "\n\tallocator: " << ::std::hex << this << ::std::dec
                 << " init for capacity " << capacity_;
 
             assert(size_ == 0);
@@ -147,25 +146,25 @@ public:
             auto p = pmem_ + size_;
             size_ += n;
 
-            ctrace << "\n\tallocator: " << std::hex << this
-                << " return address " << p << std::dec;
+            ctrace << "\n\tallocator: " << ::std::hex << this
+                << " return address " << p << ::std::dec;
 
             return p;
         }
         else
         {
-            ctrace << "\n\tFAIL allocator: " << std::hex << this << std::dec
-                << " exceeded capacity." << std::flush;
+            ctrace << "\n\tFAIL allocator: " << ::std::hex << this
+                << ::std::dec << " exceeded capacity." << ::std::flush;
 
-            throw std::bad_alloc{};
+            throw ::std::bad_alloc{};
         }
     }
 
     void deallocate(pointer p, size_type n)
     {
-        ctrace << "\n->deallocate: " << n << " of type " << typeid(T).name()
-            << " of size " << sizeof(T) << "\n\tat address " << std::hex << p
-            << std::dec;
+        ctrace << "\n->deallocate: " << n << " of type " << TYPENAME(T)
+            << " of size " << sizeof(T) << "\n\tat address " << ::std::hex << p
+            << ::std::dec;
 
         size_dealloc_ += n;
 
@@ -184,19 +183,19 @@ public:
     template<class U, class... Args>
     void construct (U* p, Args&&... args)
     {
-        ctrace << "\n->construct: of type " << typeid(U).name()
-            << "\n\tby allocator for type " << typeid(T).name()
-            << "\n\tat address " << std::hex << p << std::dec;
+        ctrace << "\n->construct: of type " << TYPENAME(U)
+            << "\n\tby allocator for type " << TYPENAME(T)
+            << "\n\tat address " << ::std::hex << p << ::std::dec;
 
-        ::new ((void *)p) U(std::forward<Args>(args)...);
+        ::new ((void *)p) U(::std::forward<Args>(args)...);
     }
 
     template<class U>
     void destroy(U* p)
     {
-        ctrace << "\n->destroy: of type " << typeid(U).name()
-            << "\n\tby allocator for type " << typeid(T).name()
-            << "\n\tat address " << std::hex << p << std::dec;
+        ctrace << "\n->destroy: of type " << TYPENAME(U)
+            << "\n\tby allocator for type " << TYPENAME(T)
+            << "\n\tat address " << ::std::hex << p << ::std::dec;
 
         p->~U();
     }
