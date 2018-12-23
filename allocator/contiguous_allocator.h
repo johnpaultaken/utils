@@ -53,16 +53,16 @@ public:
     explicit contiguous_allocator(size_t capacity) noexcept :
         capacity_{capacity}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
-        ctrace << "\n->constructor: " << ::std::hex << this << ::std::dec
+        ctrace << "\n->constructor: " << std::hex << this << std::dec
             << " allocator for type " << TYPENAME(T);
     }
 
     contiguous_allocator(const contiguous_allocator & other) noexcept :
         capacity_{other.capacity_}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
-        ctrace << "\n->copy constructor: " << ::std::hex << this << ::std::dec
+        ctrace << "\n->copy constructor: " << std::hex << this << std::dec
             << " allocator for type " << TYPENAME(T) << "\n\tfrom "
-            << ::std::hex << &other << ::std::dec << " of same type.";
+            << std::hex << &other << std::dec << " of same type.";
 
         if (other.pmem_)
         {
@@ -78,9 +78,9 @@ public:
     contiguous_allocator(const contiguous_allocator<U> & other) noexcept :
         capacity_{other.capacity_}, pmem_{nullptr}, size_{0}, size_dealloc_{0}
     {
-        ctrace << "\n->copy constructor: " << ::std::hex << this << ::std::dec
+        ctrace << "\n->copy constructor: " << std::hex << this << std::dec
             << " allocator for type " << TYPENAME(T) << "\n\tfrom "
-            << ::std::hex << &other << ::std::dec << " of type " << " "
+            << std::hex << &other << std::dec << " of type " << " "
             << TYPENAME(U);
 
         if (other.pmem_)
@@ -91,7 +91,7 @@ public:
 
     ~contiguous_allocator()
     {
-        ctrace << "\n->destructor: " << ::std::hex << this << ::std::dec
+        ctrace << "\n->destructor: " << std::hex << this << std::dec
             << " allocator for type " << TYPENAME(T);
 
         // This check is needed only due to Visual Studio bug.
@@ -126,7 +126,7 @@ public:
     };
 
     pointer allocate(
-        size_type n, ::std::allocator<void>::const_pointer /*hint*/ = 0
+        size_type n, std::allocator<void>::const_pointer /*hint*/ = 0
     )
     {
         ctrace << "\n->allocate: " << n << " of type " << TYPENAME(T)
@@ -134,7 +134,7 @@ public:
 
         if (!pmem_)
         {
-            ctrace << "\n\tallocator: " << ::std::hex << this << ::std::dec
+            ctrace << "\n\tallocator: " << std::hex << this << std::dec
                 << " init for capacity " << capacity_;
 
             assert(size_ == 0);
@@ -146,25 +146,25 @@ public:
             auto p = pmem_ + size_;
             size_ += n;
 
-            ctrace << "\n\tallocator: " << ::std::hex << this
-                << " return address " << p << ::std::dec;
+            ctrace << "\n\tallocator: " << std::hex << this
+                << " return address " << p << std::dec;
 
             return p;
         }
         else
         {
-            ctrace << "\n\tFAIL allocator: " << ::std::hex << this
-                << ::std::dec << " exceeded capacity." << ::std::flush;
+            ctrace << "\n\tFAIL allocator: " << std::hex << this
+                << std::dec << " exceeded capacity." << std::flush;
 
-            throw ::std::bad_alloc{};
+            throw std::bad_alloc{};
         }
     }
 
     void deallocate(pointer p, size_type n)
     {
         ctrace << "\n->deallocate: " << n << " of type " << TYPENAME(T)
-            << " of size " << sizeof(T) << "\n\tat address " << ::std::hex << p
-            << ::std::dec;
+            << " of size " << sizeof(T) << "\n\tat address " << std::hex << p
+            << std::dec;
 
         size_dealloc_ += n;
 
@@ -185,9 +185,9 @@ public:
     {
         ctrace << "\n->construct: of type " << TYPENAME(U)
             << "\n\tby allocator for type " << TYPENAME(T)
-            << "\n\tat address " << ::std::hex << p << ::std::dec;
+            << "\n\tat address " << std::hex << p << std::dec;
 
-        ::new ((void *)p) U(::std::forward<Args>(args)...);
+        ::new ((void *)p) U(std::forward<Args>(args)...);
     }
 
     template<class U>
@@ -195,7 +195,7 @@ public:
     {
         ctrace << "\n->destroy: of type " << TYPENAME(U)
             << "\n\tby allocator for type " << TYPENAME(T)
-            << "\n\tat address " << ::std::hex << p << ::std::dec;
+            << "\n\tat address " << std::hex << p << std::dec;
 
         p->~U();
     }

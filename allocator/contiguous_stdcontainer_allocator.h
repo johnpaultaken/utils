@@ -75,7 +75,7 @@ public:
 // Specialized version for std::map.
 //
 template <class T>
-class contiguous_stdcontainer_allocator<::std::map, T, void> :
+class contiguous_stdcontainer_allocator<std::map, T, void> :
     public contiguous_allocator<T>
 {
 public:
@@ -108,7 +108,7 @@ public:
     //
     template <class U>
     contiguous_stdcontainer_allocator(
-        const contiguous_stdcontainer_allocator<::std::map, U> & other
+        const contiguous_stdcontainer_allocator<std::map, U> & other
     ) noexcept : base_type{other}
     {
     }
@@ -119,7 +119,7 @@ public:
     template <typename Type>
     struct rebind
     {
-        using other = contiguous_stdcontainer_allocator<::std::map, Type>;
+        using other = contiguous_stdcontainer_allocator<std::map, Type>;
     };
 };
 
@@ -128,13 +128,13 @@ using void_t = void;
 
 template<class T, class = void>
 struct is_ptr_or_itr :
-    public ::std::false_type
+    public std::false_type
 {
 };
 
 template<class T>
-struct is_ptr_or_itr<T, void_t<decltype(*::std::declval<T>())>> :
-    public ::std::true_type
+struct is_ptr_or_itr<T, void_t<decltype(*std::declval<T>())>> :
+    public std::true_type
 {
 };
 
@@ -149,9 +149,9 @@ struct is_ptr_or_itr<T, void_t<decltype(*::std::declval<T>())>> :
 //
 template <class T>
 class contiguous_stdcontainer_allocator<
-    ::std::unordered_map,
+    std::unordered_map,
     T,
-    typename ::std::enable_if< is_ptr_or_itr<T>::value, void>::type
+    typename std::enable_if< is_ptr_or_itr<T>::value, void>::type
 > : public contiguous_allocator<T>
 {
 public:
@@ -174,11 +174,11 @@ public:
     struct rebind
     {
         using other =
-            contiguous_stdcontainer_allocator<::std::unordered_map, Type>;
+            contiguous_stdcontainer_allocator<std::unordered_map, Type>;
     };
 
     pointer allocate(
-        size_type n, ::std::allocator<void>::const_pointer /*hint*/ = 0
+        size_type n, std::allocator<void>::const_pointer /*hint*/ = 0
     )
     {
         ctrace << "\n->allocate: " << n << " of type " << TYPENAME(T)
@@ -186,8 +186,8 @@ public:
 
         auto p = pointer(malloc(n * sizeof(T)));
 
-        ctrace << "\n\tallocator: " << ::std::hex << this
-            << " allocate & return address " << p << ::std::dec;
+        ctrace << "\n\tallocator: " << std::hex << this
+            << " allocate & return address " << p << std::dec;
 
         return p;
     }
@@ -195,13 +195,13 @@ public:
     void deallocate(pointer p, size_type n)
     {
         ctrace << "\n->deallocate: " << n << " of type " << TYPENAME(T)
-            << " of size " << sizeof(T) << "\n\tat address " << ::std::hex << p
-            << ::std::dec;
+            << " of size " << sizeof(T) << "\n\tat address " << std::hex << p
+            << std::dec;
 
         free(p);
 
-        ctrace << "\n\tallocator: " << ::std::hex << this
-            << " freed address " << p << ::std::dec;
+        ctrace << "\n\tallocator: " << std::hex << this
+            << " freed address " << p << std::dec;
     }
 };
 
@@ -214,9 +214,9 @@ public:
 //
 template <class T>
 class contiguous_stdcontainer_allocator<
-    ::std::unordered_map,
+    std::unordered_map,
     T,
-    typename ::std::enable_if< ! is_ptr_or_itr<T>::value, void>::type
+    typename std::enable_if< ! is_ptr_or_itr<T>::value, void>::type
 > : public contiguous_allocator<T>
 {
 public:
@@ -249,7 +249,7 @@ public:
     //
     template <class U>
     contiguous_stdcontainer_allocator(
-        const contiguous_stdcontainer_allocator<::std::unordered_map, U> & other
+        const contiguous_stdcontainer_allocator<std::unordered_map, U> & other
     ) noexcept : base_type{other}
     {
     }
@@ -261,7 +261,7 @@ public:
     struct rebind
     {
         using other =
-            contiguous_stdcontainer_allocator<::std::unordered_map, Type>;
+            contiguous_stdcontainer_allocator<std::unordered_map, Type>;
     };
 };
 

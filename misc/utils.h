@@ -32,7 +32,7 @@ public:
     tstream & operator << (T && obj)
     {
 #ifdef TRACE
-        ::std::cout << ::std::forward<T>(obj);
+        std::cout << std::forward<T>(obj);
 #else
         (void)(obj);
 #endif
@@ -44,11 +44,11 @@ public:
     // For some reason, the template function cannot deduce the type of
     // std::flush.
     //
-    using stream_type = decltype(::std::cout);
+    using stream_type = decltype(std::cout);
     tstream & operator << (stream_type& (* pf)(stream_type&))
     {
 #ifdef TRACE
-        ::std::cout << pf;
+        std::cout << pf;
 #else
         (void)(pf);
 #endif
