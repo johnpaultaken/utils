@@ -70,6 +70,31 @@ public:
         }
     }
 
+// Move disabled in Visual Studio since it unnecessarily allocates
+// after move of containers like std::map
+#ifndef _MSC_VER
+    contiguous_allocator(contiguous_allocator && other) noexcept :
+        capacity_{other.capacity_},
+        pmem_{other.pmem_},
+        size_{other.size_},
+        size_dealloc_{other.size_dealloc_}
+    {
+        ctrace << "\n->move constructor: " << std::hex << this << std::dec
+            << " allocator for type " << TYPENAME(T) << "\n\tfrom "
+            << std::hex << &other << std::dec << " of same type.";
+
+        if (other.pmem_)
+        {
+            ctrace << "\n\tmove construction from a used contiguous_allocator.";
+        }
+
+        other.capacity_ = 0;
+        other.pmem_ = nullptr;
+        other.size_ = 0;
+        other.size_dealloc_ = 0;
+    }
+#endif // _MSC_VER
+
     //
     // Must be defined to allow for copy-constructions from allocator objects
     // of other types. See rebind below.
@@ -110,8 +135,8 @@ public:
         }
         else
         {
-            ctrace << "\n\tWARNING: memory leak. Allocator destroyed before"
-                << " all memory deallocated.";
+            std::cerr << "\n\tWARNING: memory leak. Allocator destroyed before"
+                << " all memory deallocated. Upgrade your gcc or clang.";
         }
     }
 

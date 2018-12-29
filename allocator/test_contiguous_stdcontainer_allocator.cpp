@@ -131,6 +131,76 @@ void test_stdmap_copyconstruct()
     }
 }
 
+void test_stdmap_moveconstruct()
+{
+    map <unsigned int, string> expected{
+        { 1,"one" },{ 2,"two" },{ 3,"three" },{ 4,"four" }
+    };
+
+    std::shared_ptr<
+        map<
+            unsigned int, string,
+            less<unsigned int>,
+            contiguous_stdcontainer_allocator <
+                map, std::pair <const unsigned int, string>
+            >
+        >
+    > p_dict_move_to;
+
+    try
+    {
+        {
+            map<
+                unsigned int, string,
+                less<unsigned int>,
+                contiguous_stdcontainer_allocator <
+                    map, std::pair <const unsigned int, string>
+                >
+            > cache_optimized_dict(
+                expected.begin(), expected.end(),
+                std::less<unsigned int>(),
+                contiguous_stdcontainer_allocator <
+                    map, map <unsigned int, string>::value_type
+                > {
+                    expected.size()
+                }
+            );
+
+            p_dict_move_to =
+                std::make_shared<
+                    map<
+                        unsigned int, string,
+                        less<unsigned int>,
+                        contiguous_stdcontainer_allocator <
+                            map, std::pair <const unsigned int, string>
+                        >
+                    >
+                >(std::move(cache_optimized_dict))
+            ;
+
+            ASSERT_M(
+                cache_optimized_dict.size() == 0,
+                "move construct map using contiguous_allocator"
+            );
+        }
+
+        map <unsigned int, string> actual{
+            p_dict_move_to->begin(),
+            p_dict_move_to->end()
+        };
+
+        ASSERT_M(
+            actual == expected,
+            "move construct map using contiguous_allocator"
+        );
+    }
+    catch (...)
+    {
+        FAIL_M("move construct map using contiguous_allocator");
+        return;
+    }
+}
+
 void test_unordmap_insert()
 {
     map <unsigned int, string> dict {
@@ -226,15 +296,98 @@ void test_unordmap_copyconstruct()
     }
 }
 
+void test_unordmap_moveconstruct()
+{
+    map <unsigned int, string> expected{
+        { 1,"one" },{ 2,"two" },{ 3,"three" },{ 4,"four" }
+    };
+
+    std::shared_ptr<
+        unordered_map<
+            unsigned int, string,
+            hash<unsigned int>,
+            equal_to<unsigned int>,
+            contiguous_stdcontainer_allocator <
+                unordered_map, std::pair <const unsigned int, string>
+            >
+        >
+    > p_dict_move_to;
+
+    try
+    {
+        {
+            unordered_map<
+                unsigned int, string,
+                hash<unsigned int>,
+                equal_to<unsigned int>,
+                contiguous_stdcontainer_allocator <
+                    unordered_map, std::pair <const unsigned int, string>
+                >
+            > cache_optimized_dict(
+                expected.begin(), expected.end(),
+                0,  // use implementation defined bucket_count
+                hash<unsigned int>(),
+                equal_to<unsigned int>(),
+                contiguous_stdcontainer_allocator <
+                    unordered_map, unordered_map <unsigned int, string>::value_type
+                > {
+                    expected.size()
+                }
+            );
+
+            ctrace << "\n************************** before" << std::flush;
+
+            p_dict_move_to =
+                std::make_shared<
+                    unordered_map<
+                        unsigned int, string,
+                        hash<unsigned int>,
+                        equal_to<unsigned int>,
+                        contiguous_stdcontainer_allocator <
+                            unordered_map, std::pair <const unsigned int, string>
+                        >
+                    >
+                >(std::move(cache_optimized_dict))
+            ;
+
+            ctrace << "\n************************** after " << cache_optimized_dict.size() << std::flush;
+
+            ASSERT_M(
+                cache_optimized_dict.size() == 0,
+                "move construct unordered_map using contiguous_allocator"
+            );
+        }
+
+        ctrace << "\n************************** destroyed" << std::flush;
+
+        map <unsigned int, string> actual{
+            p_dict_move_to->begin(),
+            p_dict_move_to->end()
+        };
+
+        ASSERT_M(
+            actual == expected,
+            "move construct unordered_map using contiguous_allocator"
+        );
+    }
+    catch (...)
+    {
+        FAIL_M("move construct unordered_map using contiguous_allocator");
+        return;
+    }
+}
+
 int main()
 {
     test_compiletime_check();
 
     test_stdmap_insert();
     test_stdmap_copyconstruct();
+    test_stdmap_moveconstruct();
 
     test_unordmap_insert();
     test_unordmap_copyconstruct();
+    test_unordmap_moveconstruct();
 
     std::cout << "\n done";
     //getchar();

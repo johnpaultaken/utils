@@ -102,6 +102,12 @@ public:
     {
     }
 
+    contiguous_stdcontainer_allocator(
+        contiguous_stdcontainer_allocator && other
+    ) noexcept : base_type{std::move(other)}
+    {
+    }
+
     //
     // Must be defined to allow for copy-constructions from allocator objects
     // of other types. See rebind below.
@@ -240,6 +246,12 @@ public:
     contiguous_stdcontainer_allocator(
         const contiguous_stdcontainer_allocator & other
     ) noexcept : base_type{other}
+    {
+    }
+
+    contiguous_stdcontainer_allocator(
+        contiguous_stdcontainer_allocator && other
+    ) noexcept : base_type{std::move(other)}
     {
     }
 
