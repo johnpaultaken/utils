@@ -335,8 +335,6 @@ void test_unordmap_moveconstruct()
                 }
             );
 
-            ctrace << "\n************************** before" << std::flush;
-
             p_dict_move_to =
                 std::make_shared<
                     unordered_map<
@@ -350,15 +348,11 @@ void test_unordmap_moveconstruct()
                 >(std::move(cache_optimized_dict))
             ;
 
-            ctrace << "\n************************** after " << cache_optimized_dict.size() << std::flush;
-
             ASSERT_M(
                 cache_optimized_dict.size() == 0,
                 "move construct unordered_map using contiguous_allocator"
             );
         }
-
-        ctrace << "\n************************** destroyed" << std::flush;
 
         map <unsigned int, string> actual{
             p_dict_move_to->begin(),
