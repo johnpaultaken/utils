@@ -135,8 +135,10 @@ public:
         }
         else
         {
+#ifndef _MSC_VER    // Visual studio has known leaks
             std::cerr << "\n\tWARNING: memory leak. Allocator destroyed before"
                 << " all memory deallocated. Upgrade your gcc or clang.";
+#endif
         }
     }
 
