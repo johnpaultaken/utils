@@ -11,7 +11,7 @@ the smaller chunk is released.
 Note the reallocation size sequences for unordered_map(itrBegin, itrEnd)
 clang:          2   5   11  23  47  97  197 397 797 1597 ...
 visual studio:  16      128     1024    2048    4096 ...  
-gcc:            No reallocation since size is known in advance. gcc is smarter.
+gcc:            No reallocation if size is known in advance. gcc is smarter.
 
 However, map elements are allocated one by one as the container size increases.
 Hence there is no reallocate involved in this case.
