@@ -23,7 +23,7 @@ contiguous_stdcontainer_allocator is provided to support such special needs.
 Challenge:
 Can you figure out the next number in the above clang sequence ?
 Hint:
-Statistical analysis have shown hash table sizing to have certain properties
+Statistical analysis have shown hash table sizing to keep certain properties
 to enable even distribution.
 ==============================================================================
 unordered_map constructed with 1033 elements
