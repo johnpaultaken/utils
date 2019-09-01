@@ -14,6 +14,7 @@ using std::cout;
 using std::istream;
 #include <vector>
 using std::vector;
+#include <iterator>
 
 // Note the use of template partial type that is required here.
 template <template <typename T> class Container, typename U>
