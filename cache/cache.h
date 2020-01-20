@@ -10,15 +10,13 @@
 
 #pragma once
 
-#include <map>
-#include <vector>
-#include <chrono>
+#include <unordered_map>
+#include <list>
 
 namespace utils
 {
-using std::map;
-using std::vector;
-using std::chrono::system_clock;
+using std::unordered_map;
+using std::list;
 
 template<typename KEY, typename VAL>
 class cache
@@ -29,7 +27,7 @@ public:
     }
 
     // if found in cache, copies to val and return true.
-    bool find(const KEY & key, VAL & val)
+    bool get(const KEY & key, VAL & val)
     {
         auto itr = _lookup.find(key);
         if (itr == _lookup.end())
@@ -38,21 +36,45 @@ public:
         }
         else
         {
+            val = itr->second._val;
+            auto end_splice = itr->second._itr_lru; ++end_splice;
+            _lru.splice( _lru.end(), _lru, itr->second._itr_lru, end_splice);
         }
     }
 private:
+    using list_type = list<const KEY>;
     using value_type = struct{
-        VAL val;
-        size_t heap_index;
+        VAL _val;
+        typename list_type::iterator _itr_lru;
     };
-    using map_type = map<KEY, value_type>;
-    using heap_type = struct{
-        system_clock::rep timestamp;
-        typename map_type::iterator itr_lookup;
-    };
+    using map_type = unordered_map<KEY, value_type>;
 
     size_t _capacity;
     map_type _lookup;
-    vector<heap_type> _heap;
+    list_type _lru;
 };
+}
+
+#include <iostream>
+using std::cout;
+#include <string>
+using std::string;
+#include <chrono>
+using std::chrono::system_clock;
+
+struct page_cache_value
+{
+    string _page;
+    system_clock::rep _timestamp;
+};
+
+int main()
+{
+    utils::cache<string, page_cache_value> page_cache(4);
+    page_cache_value cached_page;
+    if (page_cache.get("http://rextester.com", cached_page))
+    {
+        cout << "timestamp:" << cached_page._timestamp << "\tpage: " << cached_page._page;
+    }
+    std::cout << "\ndone";
 }
