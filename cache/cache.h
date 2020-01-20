@@ -40,10 +40,11 @@ public:
             auto end_splice = itr->second._itr_lru; ++end_splice;
             _lru.splice( _lru.end(), _lru, itr->second._itr_lru, end_splice);
         }
+        return true;
     }
 private:
-    using list_type = list<const KEY>;
-    using value_type = struct{
+    using list_type = list<KEY>;
+    struct value_type{
         VAL _val;
         typename list_type::iterator _itr_lru;
     };
