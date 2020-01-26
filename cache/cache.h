@@ -5,14 +5,15 @@
 // source : https://github.com/johnpaultaken
 // description :
 //      A generic cache implementation in C++11.
-//      When the cache gets full the least recently used is deleted.
+//      When the cache gets full the least recently used is ejected.
 //----------------------------------------------------------------------------
 
 #pragma once
 
 #include <unordered_map>
 #include <list>
-#include <iostream>
+#include <string>
+#include <sstream>
 
 /*
 Notes:
@@ -93,20 +94,38 @@ public:
         }
     }
 
-    void check_consistency()
+    inline size_t size()
     {
-        std::cout << "\n";
+        return _lookup.size();
+    }
+
+    inline size_t capacity()
+    {
+        return _capacity;
+    }
+
+    // check the consistency of internal data structures.
+    // Params:
+    //        details: OUT returns the detailed consistency check results.
+    // Return: true if ok.
+    bool check_consistency(std::string & details)
+    {
+        bool ret = true;
+        std::ostringstream oss;
         for(const auto & key : _lru)
         {
             if (_lookup.find(key) == _lookup.end())
             {
-                std::cout << " " << key << ":error";
+                ret = false;
+                oss << " " << key << ":error";
             }
             else
             {
-                std::cout << " " << key << ":ok";
+                oss << " " << key << ":ok";
             }
         }
+        details = oss.str();
+        return ret;
     }
 private:
     using list_type = list<KEY>;
